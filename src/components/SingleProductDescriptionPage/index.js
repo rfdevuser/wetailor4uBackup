@@ -1,0 +1,358 @@
+"use client"
+import React, { useEffect, useState } from 'react';
+import Slider from 'react-slick';
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
+import { BlouseDetailsData } from '@/components/BlouseData/Data.BlouseDetails';
+import { BlouseExtraData } from '@/components/BlouseData/Data.BlouseExtras';
+import { BlouseSleevesData } from '@/components/BlouseData/Data.BlouseSleeves';
+import Image from 'next/image';
+import { GET_FABRIC_PRODUCTS } from '@/utils/gql/GQL_QUERIES';
+import { useQuery } from '@apollo/client';
+import FabricCard from '../Assests/FabricCard';
+import Link from 'next/link';
+import Cookies from 'js-cookie';
+import { useDispatch, useSelector } from 'react-redux';
+const SingleProductDescriptionPage = ({ products }) => {
+
+  // Check if products is undefined or in pending state
+  if (!products) {
+    return <div>Loading...</div>;
+    // You can customize the loading state as per your UI/UX requirements
+  }
+  const queryVariables = {
+    firstt: 5,
+    cat: "fabric_swatch",
+    mafter: null,
+  };
+
+
+  const { loading, error, data, fetchMore } = useQuery(GET_FABRIC_PRODUCTS, {
+    variables: queryVariables,
+  });
+  console.log(data);
+  // Destructure necessary properties from products
+  const { image, galleryImages } = products;
+
+  // State to manage the currently selected image for larger view
+  const [selectedImage, setSelectedImage] = useState(image.sourceUrl);
+
+  // State to manage selected size and its prices
+  const [localSelectedFabric, setLocalSelectedFabric] = useState(null);
+  const [localSelectedLinigFabric, setLocalSelectedLiningFabric] = useState(null);
+  const [selectedSize, setSelectedSize] = useState(null);
+  const [selectedPrice, setSelectedPrice] = useState(null);
+  const [selectedRegularPrice, setSelectedRegularPrice] = useState(null);
+ const [selectedBlouseExtraItem , setselectedBlouseExtraItem] = useState(null);
+ const [selectedBlouseDetailsItem , setselectedBlouseDetailsItem] = useState(null);
+ const [selectedBlouseSleevesItem , setselectedBlouseSleevesItem] = useState(null);
+ const [SingleProduct, setSingleProduct] = useState(null);
+  // Handle click on gallery image to update the selected image
+  const handleImageClick = (imageUrl) => {
+    setSelectedImage(imageUrl);
+  };
+  useEffect(() => {
+    const fabricFromLocalStorage = localStorage.getItem('selectedFabrics');
+    if (fabricFromLocalStorage) {
+      const fabrics = JSON.parse(fabricFromLocalStorage);
+      // Assuming you want to take the last added fabric
+      setLocalSelectedFabric(fabrics[fabrics.length - 1]);
+    }
+  }, []);
+  useEffect(() => {
+    const LiningfabricFromLocalStorage = localStorage.getItem('selectedLiningFabrics');
+    if (LiningfabricFromLocalStorage) {
+      const Liningfabrics = JSON.parse(LiningfabricFromLocalStorage);
+      // Assuming you want to take the last added fabric
+      setLocalSelectedLiningFabric(Liningfabrics[Liningfabrics.length - 1]);
+    }
+  }, []);
+
+
+  useEffect(() => {
+    const sleevesIndex = Cookies.get('selectedBlouseSleevesItem');
+    const detailsIndex = Cookies.get('selectedBlouseDetailsItem');
+    const extraIndex = Cookies.get('selectedBlouseExtraItem');
+
+    if (sleevesIndex) setselectedBlouseSleevesItem(Number(sleevesIndex));
+    if (detailsIndex) setselectedBlouseDetailsItem(Number(detailsIndex));
+    if (extraIndex) setselectedBlouseExtraItem(Number(extraIndex));
+  }, []);
+
+  const handleOnClick = (chestSize, price, regularPrice) => {
+    setSelectedSize(chestSize);
+    setSelectedPrice(price);
+    setSelectedRegularPrice(regularPrice);
+  };
+  const handleBlouseSleevesClick = (index) => {
+    setselectedBlouseSleevesItem((prev) => (prev === index ? null : index));
+    Cookies.set('selectedBlouseSleevesItem', (prev === index ? null : index));
+  };
+  
+  const handleBlouseDetailsClick = (index) => {
+    setselectedBlouseDetailsItem((prev) => (prev === index ? null : index));
+    Cookies.set('selectedBlouseDetailsItem', (prev === index ? null : index));
+  };
+  
+  const handleBlouseExtraItemClick = (index) => {
+    setselectedBlouseExtraItem((prev) => (prev === index ? null : index));
+    Cookies.set('selectedBlouseExtraItem', (prev === index ? null : index));
+  };
+  
+  
+  // Extract product name from products
+  const productName = products.name.split(' - ')[0];
+
+  // Settings for the carousel (react-slick settings)
+  const carouselSettings = {
+    dots: false,
+    infinite: true,
+    speed: 500,
+    slidesToShow: 5, // Number of slides to show at once
+    slidesToScroll: 1,
+    centerMode: true, // Center the carousel
+    focusOnSelect: true,
+    responsive: [
+      {
+        breakpoint: 768,
+        settings: {
+          slidesToShow: 2,
+        },
+      },
+      {
+        breakpoint: 480,
+        settings: {
+          slidesToShow: 1,
+        },
+      },
+    ],
+  };
+
+
+
+  
+  return (
+    <>
+      <div className="flex flex-row">
+        {/* Main Product Image */}
+        <div className="md:w-2/3 md:mr-4 mb-4 md:mb-0">
+          <img
+            src={selectedImage}
+            alt="Product Image"
+            className="object-cover w-full h-full"
+          />
+        </div>
+        {/* Gallery Images */}
+        <div className="flex flex-row md:flex-col flex-wrap">
+          {galleryImages.nodes.map((image, index) => (
+            <div key={index} onClick={() => handleImageClick(image.sourceUrl)} className="cursor-pointer mx-2 mb-2">
+              <img
+                src={image.sourceUrl}
+                alt={`Image ${index}`}
+                className="object-cover w-32 h-auto md:w-80 md:h-60 "
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Product Name */}
+      <div className=' bg-clip-text text-transparent bg-gradient-to-t from-[#2e1065] to-[#db2777] text-2xl md:text-6xl flex justify-center'>
+        <b>{productName}</b>
+      </div>
+
+      {/* Sizes */}
+      <span className='flex flex-row flex-wrap gap-2 justify-center mt-8 mb-8'>
+        {products.variations.nodes.map((variation, index) => {
+          const chestSize = variation.name.match(/Chest Size (\d+)/);
+          const price = variation.price; // Assuming price is available in your variation object
+          const regularPrice = variation.regularPrice; // Assuming regularPrice is available in your variation object
+
+          return (
+            <span key={index} className="flex items-center">
+              <span
+                className={`border-4 border-[#500724] rounded-md bg-[#ffe4e6] px-3 py-1 shadow-md cursor-pointer ${selectedSize === (chestSize ? chestSize[1] : 'Unknown Size') ? 'bg-[#f3e8ff] text-[#dc2626] text-bold' : ''
+                  }`}
+                onClick={() => handleOnClick(chestSize ? chestSize[1] : 'Unknown Size', price, regularPrice)}
+              >
+                {chestSize ? chestSize[1] : 'Unknown Size'}
+              </span>
+              {index !== products.variations.nodes.length - 1 && (
+                <span className="border-l border-black h-6 mx-2 "></span>
+              )}
+            </span>
+          );
+        })}
+      </span>
+
+      {/* Selected Size and Prices */}
+      {selectedSize && (
+        <div className='flex flex-col justify-center items-center  text-center mt-4 '>
+          {selectedRegularPrice && (
+            <p className=' text-[#dc2626] text-xl md:text-3xl'>
+              Market Tailoring Cost :  <span style={{ textDecoration: 'line-through' }}>{selectedRegularPrice}</span>
+            </p>
+          )}
+          <p className='text-[#166534] text-2xl md:text-4xl'><b><u>Our Tailoring Cost : {selectedPrice}</u></b></p>
+        </div>
+      )}
+      {/* Product Description */}
+      <div className='mx-2 mt-8' dangerouslySetInnerHTML={{ __html: products.shortDescription }} />
+
+      <div className=' bg-clip-text text-transparent bg-gradient-to-t from-[#2e1065] to-[#db2777] text-2xl md:text-6xl flex justify-center mt-20'>
+        <b>Personalize your style</b>
+      </div>
+
+      {/* Slider for Blouse Sleeves Data */}
+      <div className='text-2xl md:text-4xl flex justify-center mt-20'>Select Sleeves designs</div>
+      <div className='mx-2 md:mx-6 p-2 mt-6 bg-gradient-to-t from-rose-100 to-[#ffffff] '>
+        <Slider {...carouselSettings}>
+          {BlouseSleevesData.map((item, index) => (
+            <div key={index} style={{ margin: '10px' }}  onClick={() => handleBlouseSleevesClick (index)}>
+              <Image
+                src={item.image}
+                alt='hh'
+                height={100}
+                width={100}
+                loading='lazy'
+                className={`border-2 rounded-md ${selectedBlouseSleevesItem === index ? 'border-solid border-4 border-[#831843] shadow-xl' : 'border-gray-200'}`}
+              />
+              <div className='text-bold'>
+              <p className={`${selectedBlouseSleevesItem === index ? 'text-[#831843] ':'text-[#db2777]'}`} ><b>{item.name}</b></p>
+              <p className={`${selectedBlouseSleevesItem === index ? 'text-[#831843]':'text-[#db2777]'}`}><b>Price: ₹ {item.price}/-</b></p>
+              </div>
+            </div>
+          ))}
+        </Slider>
+      </div>
+
+      {/* Slider for Blouse Details */}
+      <div className='text-2xl md:text-4xl flex justify-center mt-20'>Select Blouse Details</div>
+      <div className='mx-2 md:mx-6 p-2 mt-6 bg-gradient-to-t from-rose-100 to-[#ffffff]'>
+        <Slider {...carouselSettings}>
+          {BlouseDetailsData.map((item, index) => (
+            <div key={index} style={{ margin: '10px' }}  onClick={() =>handleBlouseDetailsClick (index)}>
+              <Image
+                src={item.image}
+                alt='hh'
+                height={100}
+                width={100}
+                loading='lazy'
+                className={`border-2 rounded-md ${selectedBlouseDetailsItem === index ? 'border-solid border-4 border-[#831843] shadow-xl' : 'border-gray-200'}`}
+              />
+              <div className='text-bold'>
+              <p className={`${selectedBlouseDetailsItem === index ? 'text-[#831843] ':'text-[#db2777]'}`} ><b>{item.name}</b></p>
+              <p className={`${selectedBlouseDetailsItem === index ? 'text-[#831843]':'text-[#db2777]'}`}><b>Price: ₹ {item.price}/-</b></p>
+              </div>
+            </div>
+          ))}
+        </Slider>
+      </div>
+
+      {/* Slider for Blouse Extra Data */}
+      <div className='text-2xl md:text-4xl flex justify-center mt-20'>Select Blouse Extra </div>
+      <div className='mx-2 md:mx-6 p-2 mt-6 bg-gradient-to-t from-rose-100 to-[#ffffff]'>
+        <Slider {...carouselSettings}>
+          {BlouseExtraData.map((item, index) => (
+            <div key={index} style={{ margin: '10px' }} onClick={() => handleBlouseExtraItemClick(index)}>
+              <Image
+                src={item.image}
+                alt='hh'
+                height={100}
+                width={100}
+                loading='lazy'
+                className={`border-2 rounded-md ${selectedBlouseExtraItem === index ? 'border-solid border-4 border-[#831843] shadow-xl' : 'border-gray-200'}`}
+              />
+              <div className='text-bold'>
+                <p className={`${selectedBlouseExtraItem === index ? 'text-[#831843] ':'text-[#db2777]'}`} ><b>{item.name}</b></p>
+                <p className={`${selectedBlouseExtraItem === index ? 'text-[#831843]':'text-[#db2777]'}`}><b>Price: ₹ {item.price}/-</b></p>
+              </div>
+            </div>
+          ))}
+        </Slider>
+      </div>
+      <div className='text-2xl md:text-4xl flex justify-center mt-20'>Elevate your designs with our premium fabrics.</div>
+
+  
+      <div className='text-xl md:text-2xl flex justify-center mt-20'><strong>Choose the Main Fabric</strong></div>
+      <div className='flex flex-row justify-center gap-4 mt-4 bg-gradient-to-t from-rose-100 to-[#ffffff]'>
+   
+      {data && data.products && data.products.edges.map((edge, index) => (
+              
+            
+              <FabricCard
+              key={edge.node.id} 
+                name={edge.node.name}
+                image={edge.node.image.sourceUrl}
+                slug={edge.node.slug}
+                price={edge.node.price}
+                setSingleProduct={setSingleProduct}
+              />
+
+            
+            ))}
+ 
+    </div>
+ <div className='flex justify-center mb-8 mt-8'>
+  <Link href='http://localhost:3000/Fabric_Store'>
+      <button className="cursor-pointer text-white font-bold shadow-md hover:scale-[1.2] shadow-purple-400 rounded-full px-5 py-2 bg-gradient-to-bl from-[#F97794] to-[#623AA2]">
+  See More Fabrics....
+</button>
+</Link>
+
+</div>
+
+
+
+
+<div className=''>  {localSelectedFabric && (
+        <div className='mt-10 text-center'>
+          <h2 className='text-2xl md:text-4xl'>Selected Main Fabric:</h2>
+          <Image src={localSelectedFabric.image} alt={localSelectedFabric.name} height={100} width={100} className='mt-4 mx-auto' />
+          <p className='text-xl'>{localSelectedFabric.name}</p>
+          <p className='text-lg'>Price:  {localSelectedFabric.price}</p>
+        </div>
+      )}</div>
+
+
+
+
+<div className=''>  {localSelectedLinigFabric && (
+        <div className='mt-10 text-center'>
+          <h2 className='text-2xl md:text-4xl'>Selected Lining Fabric:</h2>
+          <Image src={localSelectedLinigFabric.image} alt={localSelectedLinigFabric.name} height={100} width={100} className='mt-4 mx-auto' />
+          <p className='text-xl'>{localSelectedLinigFabric.name}</p>
+          <p className='text-lg'>Price: ₹ {localSelectedLinigFabric.price}</p>
+        </div>
+      )}</div>
+
+
+
+      {/* Selected Blouse Data Section */}
+<div className='mt-10 text-center flex flex-row gap-4 justify-center'>
+  {/* <h2 className='text-2xl md:text-4xl'>Selected Blouse Options:</h2> */}
+  {selectedBlouseSleevesItem !== null && (
+    <div>
+      <p className='text-xl'>Sleeves: <b>{BlouseSleevesData[selectedBlouseSleevesItem].name}</b></p>
+      <p className='text-lg'>Price: ₹ {BlouseSleevesData[selectedBlouseSleevesItem].price}/-</p>
+    </div>
+  )}
+  {selectedBlouseDetailsItem !== null && (
+    <div>
+      <p className='text-xl'>Details: <b>{BlouseDetailsData[selectedBlouseDetailsItem].name}</b></p>
+      <p className='text-lg'>Price: ₹ {BlouseDetailsData[selectedBlouseDetailsItem].price}/-</p>
+    </div>
+  )}
+  {selectedBlouseExtraItem !== null && (
+    <div>
+      <p className='text-xl'>Extras: <b>{BlouseExtraData[selectedBlouseExtraItem].name}</b></p>
+      <p className='text-lg'>Price: ₹ {BlouseExtraData[selectedBlouseExtraItem].price}/-</p>
+    </div>
+  )}
+</div>
+
+    </>
+  );
+};
+
+export default SingleProductDescriptionPage;
